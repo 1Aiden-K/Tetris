@@ -635,7 +635,11 @@ public class Tetris extends JFrame implements KeyListener{
                             newBlock(queue[(int)(Math.random()*7)]);
                         }
                     }
-                    if (framesElapsed % (15 - 2 * (int)(linesCompleted / 5)) == 0 && !isOnFloor()){
+                    int blockInterval;
+                    if (linesCompleted/5 <= 4){blockInterval = 15 - 2 * (linesCompleted / 5);}
+                    else if(linesCompleted/5 <= 9){blockInterval = 15 - 8 - ((linesCompleted / 5) - 3);}
+                    else{blockInterval = 1;}
+                    if (framesElapsed % (blockInterval) == 0 && !isOnFloor()){
                         moveActiveDown();
                     }
                     gamePanel.repaint();
