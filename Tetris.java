@@ -1,6 +1,5 @@
 import javax.swing.*;
 import java.awt.*;
-//import javax.swing.border.LineBorder;
 import java.awt.event.*;
 import java.util.HashSet;
 import java.util.Set;
@@ -30,6 +29,9 @@ public class Tetris extends JFrame implements KeyListener{
 
     private final static Set<Integer> pressedKeys = new HashSet<>();
     private final static Set<Integer> handledKeys = new HashSet<>();
+
+    private static CardLayout cardLayout;
+    private static JPanel mainPanel;
 
     private static JLabel scoreLabel;
 
@@ -155,9 +157,20 @@ public class Tetris extends JFrame implements KeyListener{
         //setting up the window
         setLocation((SCREEN_W - FRAME_W)/2, (SCREEN_H - FRAME_H)/2);
         
-        //Adding game component
+        //Adding game components
+        cardLayout = new CardLayout();
+        mainPanel = new JPanel(cardLayout);
+
+        // Initialize panels
         gamePanel.setBackground(Color.BLACK);
-        add(gamePanel, BorderLayout.CENTER);
+        gameOverPanel.setBackground(Color.BLACK);
+
+        // Add panels to card layout container
+        mainPanel.add(gamePanel, "GAME");
+        mainPanel.add(gameOverPanel, "GAME_OVER");
+
+        // Add main panel to JFrame
+        add(mainPanel, BorderLayout.CENTER);
 
         scoreLabel = new JLabel("Score: 0");
         scoreLabel.setForeground(Color.WHITE); // For visibility on dark background
@@ -248,7 +261,17 @@ public class Tetris extends JFrame implements KeyListener{
 
     private static void endGame(){
         //endSequence
-        System.out.println("Game Over");
+        JLabel gameOverText = new JLabel("Game Over", SwingConstants.CENTER);
+        gameOverText.setForeground(Color.RED);
+        gameOverText.setFont(new Font("Arial", Font.BOLD, 32));
+        gameOverText.setBackground(Color.BLACK);
+        gameOverText.setOpaque(true);
+
+        gameOverPanel.setLayout(new BorderLayout());
+        gameOverPanel.add(gameOverText, BorderLayout.CENTER);
+
+        // Switch to game over screen
+        cardLayout.show(mainPanel, "GAME_OVER");
     }
 
     private static void moveActiveDown(){
