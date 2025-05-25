@@ -12,8 +12,8 @@ public class Tetris extends JFrame implements KeyListener{
     private final static int FRAME_W = 1012;
     private final static int FRAME_H = 562;
     private final static String OS = System.getProperty("os.name");
-    private final static  Color[][] grid = new Color[20][10]; //placed blocks
-    private final static  Color[][] activeGrid = new Color[23][10]; //unplaced blocks
+    private static  Color[][] grid = new Color[20][10]; //placed blocks
+    private static  Color[][] activeGrid = new Color[23][10]; //unplaced blocks
     private static boolean gameOver;
     private static boolean isPaused;
     private static int linesCompleted = 0;
@@ -27,8 +27,12 @@ public class Tetris extends JFrame implements KeyListener{
     private static boolean stall = false;
     private static int stallFrame = 0;
 
+    private static int gameSessionId = 0;
+
     private final static Set<Integer> pressedKeys = new HashSet<>();
     private final static Set<Integer> handledKeys = new HashSet<>();
+
+    private static Thread gameThread;
 
     private static CardLayout cardLayout;
     private static JPanel mainPanel;
@@ -251,10 +255,20 @@ public class Tetris extends JFrame implements KeyListener{
                 }
         });
 
+        //create new game
+        JMenuItem newGame = new JMenuItem("New Game");
+        newGame.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    newGame();
+                }
+        });
+
         //adding menu items
         menuBar.add(graphicSettings);
         menuBar.add(exit);
         menuBar.add(pausePlay);
+        menuBar.add(newGame);
 
         a.setJMenuBar(menuBar);
     }
@@ -271,7 +285,11 @@ public class Tetris extends JFrame implements KeyListener{
         gameOverPanel.add(gameOverText, BorderLayout.CENTER);
 
         // Switch to game over screen
-        cardLayout.show(mainPanel, "GAME_OVER");
+        SwingUtilities.invokeLater(() -> {
+            cardLayout.show(mainPanel, "GAME_OVER");
+            mainPanel.revalidate();
+            mainPanel.repaint();
+        });
     }
 
     private static void moveActiveDown(){
@@ -627,6 +645,32 @@ public class Tetris extends JFrame implements KeyListener{
         }
     }
 
+    private static void newGame(){
+        gameThread.interrupt();
+
+        //reset all instance varibles
+        grid = new Color[20][10]; //placed blocks
+        activeGrid = new Color[23][10]; //unplaced blocks
+        gameOver = false;
+        isPaused = false;;
+        linesCompleted = 0;
+        framesElapsed = 0;
+        stall = false;
+        stallFrame = 0;
+
+        blockLocation = null;
+        blockColor = null;
+        blockType = null;
+
+        cardLayout.show(mainPanel, "GAME");
+        mainPanel.revalidate();
+        mainPanel.repaint();
+
+        gameSessionId++;
+        gameThread = new Thread(() -> run(gameSessionId));
+        gameThread.start();
+    }
+
     public static void main(String[] args){
         SwingUtilities.invokeLater(() -> {
             Tetris frame = new Tetris();
@@ -634,14 +678,15 @@ public class Tetris extends JFrame implements KeyListener{
             frame.setVisible(true);
             
             // Run game loop in a separate thread
-            new Thread(() -> run()).start();
+            gameThread = new Thread(() -> run(gameSessionId));
+            gameThread.start();
         });
     }
 
-    private static void run(){
+    private static void run(int sessionId){
         //gameplay loop
         newBlock(queue[(int)(Math.random()*7)]); //Starting block
-        while (!gameOver) {
+        while (!gameOver && sessionId == gameSessionId && !Thread.currentThread().isInterrupted()) {
             long currentTime = System.currentTimeMillis();
             if (currentTime >= cycle + (1000 / frameRate)) {
                 cycle = currentTime; // Update cycle each iteration
@@ -674,7 +719,11 @@ public class Tetris extends JFrame implements KeyListener{
                 e.printStackTrace();
             }
         }
-        endGame();
+        if (sessionId == gameSessionId) {
+            endGame();
+        } else {
+            // This thread belongs to an old session, do nothing
+        }
     }
 
     private static void checkInputs(){
